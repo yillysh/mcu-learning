@@ -1,0 +1,64 @@
+#include "AI8051U.h"
+
+// ============================================================
+//  STC AI8051U-34K64  PWMA ??2 (PWM2P -> P1.2) ?????
+//  ?? 40MHz, PWM 1kHz
+//  ???: Keil C251 (32???)
+// ============================================================
+
+// ? ?????????????? (0 ~ 39999)
+// 0%   -> 0
+// 25%  -> 10000
+// 50%  -> 20000
+// 75%  -> 30000
+// 100% -> 39999
+#define SET_DUTY  39999  
+
+void PWMA_Init(void)
+{
+    EAXFR = 1;                  // ???: ???????(XFR)??
+
+    // 1. P1.2 ????
+    P1M0 |= 0x04;
+    P1M1 &= ~0x04;
+
+    // 2. ????: C2PS[1:0]=00 -> PWM2P ??? P1.2
+    PWMA_PS = 0x00;
+
+    // 3. ??? = 0 (PWM?? = 40MHz)
+    PWMA_PSCRH = 0x00;
+    PWMA_PSCRL = 0x00;
+
+    // 4. ????? = 39999 -> ?? 1kHz
+    PWMA_ARRH = 0x9C;
+    PWMA_ARRL = 0x3F;
+
+    // 5. ??2??: PWM??1, ?????
+    PWMA_CCMR2 = 0x60;
+
+    // 6. ????????????
+    PWMA_CCR2H = (unsigned char)(SET_DUTY >> 8);
+    PWMA_CCR2L = (unsigned char)(SET_DUTY & 0xFF);
+
+    // 7. ????2?? (CC2E?CCER1?bit4), ?????
+    PWMA_CCER1 = 0x10;          
+
+    // 8. ????? (MOE???)
+    PWMA_BKR = 0x80;
+
+    // 9. ??PWM2P???? (ENO bit2)
+    PWMA_ENO |= 0x04;
+
+    // 10. ?????
+    PWMA_CR1 = 0x01;
+}
+
+void main(void)
+{
+    PWMA_Init();
+
+    while (1)
+    {
+        // ?????,?????
+    }
+}

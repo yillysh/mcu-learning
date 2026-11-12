@@ -1,0 +1,15 @@
+# Keil build output directories
+**/Debug/
+**/Release/
+**/Objects/
+**/Listings/
+
+# Keil generated build artifacts and local UI state
+*.obj
+*.crf
+*.lnp
+*.lst
+*.map
+*.build_log.htm
+build.log
+*.uvgui.*

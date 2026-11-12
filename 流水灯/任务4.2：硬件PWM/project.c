@@ -1,0 +1,107 @@
+#include "AI8051U.h"
+
+// ============================================================
+//  STC AI8051U-34K64  PWMA ??2 (PWM2P -> P1.2) ???
+//  ?? 40MHz, PWM 1kHz, P1.2 ????, ?????LED
+//  ???: Keil C251 (32???)
+// ============================================================
+
+// ??: 1 = ???(??B), 0 = ??50%???(??A)
+#define MODE_BREATHING  1
+
+// ?????
+unsigned int pwm_duty = 0;      // ????? (0 ~ 39999)
+bit duty_dir = 0;               // 0=??, 1=??
+
+// ===== ???? (????, ?????) =====
+void delay_ms(unsigned int ms)
+{
+    unsigned int i;
+    while (ms--)
+    {
+        i = 2500;               // ?1ms @40MHz, ?????????????
+        while (--i);
+    }
+}
+
+// ===== PWMA ???: ??2, 1kHz, ??50%??? =====
+void PWMA_Init(void)
+{
+    EAXFR = 1;                  // ???: ???????(XFR)??, ??PWMA???????
+
+    // 1) P1.2 ????
+    P1M0 |= 0x04;
+    P1M1 &= ~0x04;
+
+    // 2) ????: C2PS[1:0]=00 -> PWM2P ??? P1.2
+    PWMA_PS = 0x00;
+
+    // 3) ??? = 0 (PWM?? = 40MHz)
+    PWMA_PSCRH = 0x00;
+    PWMA_PSCRL = 0x00;
+
+    // 4) ????? = 39999 -> ?? = 40MHz/(0+1)/(39999+1) = 1kHz
+    PWMA_ARRH = 0x9C;
+    PWMA_ARRL = 0x3F;
+
+    // 5) ??2??: PWM??1, ?????
+    PWMA_CCMR2 = 0x60;
+
+    // 6) ????? 50% = 20000
+    PWMA_CCR2H = 0x4E;
+    PWMA_CCR2L = 0x20;
+
+    // 7) ????2?? (CC2E?CCER1?bit4), ?????
+    PWMA_CCER1 = 0x10;          // ? ???: ?? CCER2
+
+    // 8) ????? (MOE???)
+    PWMA_BKR = 0x80;
+
+    // 9) ??PWM2P???? (ENO bit2)
+    PWMA_ENO |= 0x04;
+
+    // 10) ?????
+    PWMA_CR1 = 0x01;
+}
+
+void main(void)
+{
+    PWMA_Init();
+
+#if MODE_BREATHING
+    // ===== ??B: ??? =====
+    while (1)
+    {
+        delay_ms(20);           // ?20ms???????
+
+        if (!duty_dir)          // ??
+        {
+            pwm_duty += 100;
+            if (pwm_duty >= 39999)
+            {
+                pwm_duty = 39999;
+                duty_dir = 1;
+            }
+        }
+        else                    // ??
+        {
+            pwm_duty -= 100;
+            if (pwm_duty <= 0)
+            {
+                pwm_duty = 0;
+                duty_dir = 0;
+            }
+        }
+
+        // ????? (????, ????)
+        PWMA_CCR2H = (unsigned char)(pwm_duty >> 8);
+        PWMA_CCR2L = (unsigned char)(pwm_duty & 0xFF);
+    }
+#else
+    // ===== ??A: ??50%??? (?????) =====
+    while (1)
+    {
+        // LED??50%??, ?????
+    }
+#endif
+}
